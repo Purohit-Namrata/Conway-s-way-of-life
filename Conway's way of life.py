@@ -14,6 +14,8 @@ def generate_board():
 def draw_cell(x, y, size):
         c.create_rectangle(x, y, x+size, y+size, fill='black', outline='black')
         create_neighbours()
+        c.tag_bind("rectangle","<Button-1>",lambda:  update_board)
+
 
 root=tk.Tk()
 root.title("Conway's way of life ")
@@ -26,15 +28,17 @@ resolution=100
 
 cell= width/resolution
 
-b=tk.Button(root, text="Game of life",command=generate_board)
-b.grid(row=1,column=0)
+start_button=tk.Button(root, text="START",command=generate_board)
+start_button.grid(row=1,column=0)
+
+stop_button=tk.Button(root, text="STOP",command=root.destroy)
+stop_button.grid(row=2,column=0)
 
 grid1= [[0 for x in range(resolution)] for y in range(resolution)]
 
 for x in range(0, resolution):
         for y in range(0, resolution):
               grid1[x][y] = random.randint(0, 1) 
-
 
 def create_neighbours():
         new_grid = [[0 for x in range(resolution)] for y in range(resolution)]
@@ -67,5 +71,11 @@ def count_neighbours(x, y):
                 except IndexError:
                      continue
         return count
+
+def update_board():
+        c.delete("all")
+        grid = create_neighbours()
+        generate_board()
+        
 
 root.mainloop()
