@@ -1,81 +1,105 @@
 import tkinter as tk
 import random
-import math
-from tkinter import Canvas
+import time
 
-def generate_board():
-        for x in range(0, resolution):
-            for y in range(0, resolution):
-                newx = x * cell
-                newy = y * cell
-                if grid1[x][y] == 1:
-                    draw_cell(newx, newy, cell)
+# Constants
+CELL_SIZE = 10
+WIDTH, HEIGHT = 600, 400
+ROWS, COLS = HEIGHT // CELL_SIZE, WIDTH // CELL_SIZE
+DELAY = 0.1
 
-def draw_cell(x, y, size):
-        c.create_rectangle(x, y, x+size, y+size, fill='black', outline='black')
-        create_neighbours()
-        c.tag_bind("rectangle","<Button-1>",lambda:  update_board)
+# Initialize the grid
+grid = [[0] * COLS for _ in range(ROWS)]
+next_grid = [[0] * COLS for _ in range(ROWS)]
 
+# Initialize tkinter
+root = tk.Tk()
+root.title("Conway's Game of Life")
 
-root=tk.Tk()
-root.title("Conway's way of life ")
-c=Canvas(root, bg="yellow", height=300, width=300)
-c.grid(row=0,column=0)
+canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, borderwidth=0, highlightthickness=0)
+canvas.pack()
 
-width=500
-height=500
-resolution=100
+# Function to draw the grid
+def draw_grid():
+    canvas.delete("rect")
+    for i in range(ROWS):
+        for j in range(COLS):
+            x0, y0 = j * CELL_SIZE, i * CELL_SIZE
+            x1, y1 = x0 + CELL_SIZE, y0 + CELL_SIZE
+            if grid[i][j] == 1:
+                canvas.create_rectangle(x0, y0, x1, y1, fill="black", tags="rect")
+            else:
+                canvas.create_rectangle(x0, y0, x1, y1, fill="white", tags="rect")
 
-cell= width/resolution
+# Function to update the grid
+def update_grid():
+    global grid, next_grid
+    for i in range(ROWS):
+        for j in range(COLS):
+            state = grid[i][j]
+            neighbors = count_neighbors(i, j)
+            if state == 0 and neighbors == 3:
+                next_grid[i][j] = 1
+            elif state == 1 and (neighbors < 2 or neighbors > 3):
+                next_grid[i][j] = 0
+            else:
+                next_grid[i][j] = state
 
-start_button=tk.Button(root, text="START",command=generate_board)
-start_button.grid(row=1,column=0)
+    grid = [row[:] for row in next_grid]
 
-stop_button=tk.Button(root, text="STOP",command=root.destroy)
-stop_button.grid(row=2,column=0)
+# Function to count neighbors
+def count_neighbors(row, col):
+    count = 0
+    for i in range(-1, 2):
+        for j in range(-1, 2):
+            if not (i == 0 and j == 0):
+                nrow, ncol = (row + i) % ROWS, (col + j) % COLS
+                count += grid[nrow][ncol]
+    return count
 
-grid1= [[0 for x in range(resolution)] for y in range(resolution)]
+# Function to initialize random cells
+def randomize_grid():
+    for i in range(ROWS):
+        for j in range(COLS):
+            grid[i][j] = random.choice([0, 1])
 
-for x in range(0, resolution):
-        for y in range(0, resolution):
-              grid1[x][y] = random.randint(0, 1) 
+# Function to start the simulation
+def start_simulation():
+    global running
+    running = True
+    while running:
+        update_grid()
+        draw_grid()
+        root.update()
+        time.sleep(DELAY)
 
-def create_neighbours():
-        new_grid = [[0 for x in range(resolution)] for y in range(resolution)]
-        for x in range(0, resolution):
-            for y in range(0, resolution):
-                neighbours = count_neighbours(x, y)
-                if grid1[x][y] == 1:            
-                    if neighbours < 2:                        
-                        new_grid[x][y] = 0
-                    elif neighbours == 2 or neighbours == 3:
-                        new_grid[x][y] = 1
-                    elif neighbours > 3:
-                       new_grid[x][y] = 0
-                else:
-                    if neighbours == 3:
-                        new_grid[x][y] = 1
-        return new_grid
+# Function to stop the simulation
+def stop_simulation():
+    global running
+    running = False
 
-def count_neighbours(x, y):
-        count = 0
-        xrange = [x-1, x, x+1]
-        yrange = [y-1, y, y+1]
-        for x1 in xrange:
-            for y1 in yrange:
-                if x1 == x and y1 == y:
-                    continue
-                try:
-                     if grid1[x1][y1] == 1:
-                          count += 1
-                except IndexError:
-                     continue
-        return count
+# Function to handle mouse click events
+def handle_click(event):
+    col = event.x // CELL_SIZE
+    row = event.y // CELL_SIZE
+    if 0 <= row < ROWS and 0 <= col < COLS:
+        grid[row][col] = 1 - grid[row][col]  # Toggle cell state
+        draw_grid()
 
-def update_board():
-        c.delete("all")
-        grid = create_neighbours()
-        generate_board()
-        
+# Initialize random cells
+randomize_grid()
+draw_grid()
 
+# Bind mouse click event to handle_click function
+canvas.bind("<Button-1>", handle_click)
+
+# Start/Stop button
+start_button = tk.Button(root, text="Start", command=start_simulation)
+start_button.pack(side=tk.LEFT, padx=10)
+
+stop_button = tk.Button(root, text="Stop", command=stop_simulation)
+stop_button.pack(side=tk.LEFT, padx=10)
+
+# Main loop
+running = False
 root.mainloop()
